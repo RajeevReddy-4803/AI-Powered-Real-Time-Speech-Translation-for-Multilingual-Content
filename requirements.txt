@@ -1,0 +1,16 @@
+numpy
+scipy
+librosa>=0.10.0
+soundfile
+tqdm
+pandas
+joblib
+num2words
+matplotlib
+seaborn
+torch
+torchaudio
+transformers
+datasets
+evaluate
+scikit-learn
