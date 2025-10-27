@@ -1,0 +1,61 @@
+# --- Python and general ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.log
+*.tmp
+
+# --- Colab and notebook checkpoints ---
+.ipynb_checkpoints/
+*.ipynb_save
+*.bak
+
+# --- Audio and preprocessing outputs ---
+*.wav
+*.flac
+*.mp3
+*.ogg
+*.m4a
+*.npy
+*.npz
+*.pt
+*.pkl
+
+# --- Dataset folders ---
+/data/
+/datasets/
+/content/
+/drive/
+
+# --- Manifest and CSVs with raw paths ---
+*_mapped.csv
+*_manifest.csv
+train.csv
+test.csv
+val.csv
+
+# --- Model checkpoints ---
+/checkpoints/
+/models/outputs/
+/runs/
+/wandb/
+/lightning_logs/
+/outputs/
+
+# --- Environment and temporary files ---
+.env
+*.env
+*.DS_Store
+*.zip
+*.tar
+*.tar.gz
+*.gz
+
+# --- Cache ---
+.cache/
+logs/
+
+# --- Requirements ---
+requirements.txt
