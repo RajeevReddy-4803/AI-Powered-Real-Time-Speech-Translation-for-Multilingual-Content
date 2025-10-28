@@ -1,61 +1,87 @@
-# --- Python and general ---
+# ===============================
+# Multilingual Speech Translation Project (.gitignore)
+# ===============================
+
+# --- Python cache & temp ---
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.swp
 *.log
 *.tmp
+*.lock
 
-# --- Colab and notebook checkpoints ---
-.ipynb_checkpoints/
-*.ipynb_save
+# --- Colab & Jupyter ---
+*.ipynb_checkpoints/
+.DS_Store
+*.swp
 *.bak
 
-# --- Audio and preprocessing outputs ---
+# --- Audio data & datasets ---
 *.wav
 *.flac
 *.mp3
-*.ogg
 *.m4a
-*.npy
-*.npz
-*.pt
-*.pkl
-
-# --- Dataset folders ---
-/data/
-/datasets/
-/content/
-/drive/
-
-# --- Manifest and CSVs with raw paths ---
-*_mapped.csv
-*_manifest.csv
-train.csv
-test.csv
-val.csv
-
-# --- Model checkpoints ---
-/checkpoints/
-/models/outputs/
-/runs/
-/wandb/
-/lightning_logs/
-/outputs/
-
-# --- Environment and temporary files ---
-.env
-*.env
-*.DS_Store
 *.zip
 *.tar
-*.tar.gz
 *.gz
+*.bz2
+*.npz
+*.npy
+data/
+datasets/
+raw_data/
+processed_data/
+manifest_temp/
+manifest_cache/
+temp_audio/
 
-# --- Cache ---
-.cache/
+# --- Model weights, checkpoints & runs ---
+*.pt
+*.bin
+*.ckpt
+*.safetensors
+checkpoints/
+runs/
+outputs/
+wandb/
 logs/
+models/whisper/checkpoints/
+models/indicwav2vec/checkpoints/
 
-# --- Requirements ---
-requirements.txt
+# --- Intermediate training & cache files ---
+cache/
+huggingface/
+transformers_cache/
+datasets/
+__cache__/
+tmp/
+torch_cache/
+
+# --- Environment & credentials ---
+.env
+*.json
+*.yaml
+*.yml
+*.pkl
+token_*
+hf_*
+drive_mount.txt
+
+# --- Ignore local configs ---
+local_config.py
+colab_config.py
+
+# --- Ignore evaluation artifacts ---
+results/
+metrics/
+predictions/
+samples/
+
+# --- Allow manifest summary files ---
+!preprocess/*.csv
+!preprocess/*.py
+!models/**/*.py
+!README.md
+!requirements.txt
+!*.ipynb

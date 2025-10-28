@@ -1,9 +1,8 @@
 """
-Stable Whisper-small fine-tuning script (Transformers 4.57+, 2x T4 GPU safe).
-✅ Fixes IndexError during evaluation (safe compute_metrics)
-✅ Uses bf16 precision (better than fp16 on T4)
-✅ Uses Seq2SeqTrainer’s built-in DDP
-✅ Saves and evaluates on test after training
+🔥 Full Whisper-small fine-tuning on complete dataset
+✅ Stable, resumable, and optimized for 2×T4 GPUs
+✅ Automatic checkpoint resume
+✅ Saves best & last checkpoints
 """
 
 import os, torch, torchaudio, pandas as pd, numpy as np, evaluate
@@ -22,7 +21,8 @@ BASE = "/kaggle/working/speech_translation"
 TRAIN_CSV = f"{BASE}/data/processed/splits/train.csv"
 VAL_CSV = f"{BASE}/data/processed/splits/val.csv"
 TEST_CSV = f"{BASE}/data/processed/splits/test.csv"
-OUTPUT_DIR = f"{BASE}/models/whisper_small_finetuned"
+OUTPUT_DIR = f"{BASE}/models/whisper_small_finetuned_full"
+
 BATCH_SIZE = 2
 GRAD_ACCUM = 4
 EPOCHS = 3
@@ -33,6 +33,8 @@ print(f"✅ Using CUDA with {torch.cuda.device_count()} GPU(s):")
 for i in range(torch.cuda.device_count()):
     print(f" - GPU {i}: {torch.cuda.get_device_name(i)}")
 
+disable_caching()
+
 # ====== Load Data ======
 for path in [TRAIN_CSV, VAL_CSV, TEST_CSV]:
     if not os.path.exists(path):
@@ -41,23 +43,20 @@ for path in [TRAIN_CSV, VAL_CSV, TEST_CSV]:
 train_df = pd.read_csv(TRAIN_CSV)
 val_df = pd.read_csv(VAL_CSV)
 test_df = pd.read_csv(TEST_CSV)
-print(f"Data sizes — Train: {len(train_df)}, Val: {len(val_df)}, Test: {len(test_df)}")
-
-disable_caching()
+print(f"📊 Data — Train: {len(train_df)}, Val: {len(val_df)}, Test: {len(test_df)}")
 
 # ====== Processor and Model ======
 processor = WhisperProcessor.from_pretrained(MODEL_NAME, language="hi", task="transcribe")
 model = WhisperForConditionalGeneration.from_pretrained(MODEL_NAME)
 model.config.use_cache = False
-model.enable_input_require_grads()  # prevents double-backward issue
 model.to(device)
 
-# ====== Dataset Setup ======
+# ====== Datasets ======
 train_ds = Dataset.from_pandas(train_df[["wav_path", "transcript"]])
 val_ds = Dataset.from_pandas(val_df[["wav_path", "transcript"]])
 test_ds = Dataset.from_pandas(test_df[["wav_path", "transcript"]])
 
-# ====== Collator ======
+# ====== Data Collator ======
 @dataclass
 class OnTheFlyCollator:
     processor: WhisperProcessor
@@ -79,9 +78,7 @@ class OnTheFlyCollator:
                 a = a[:target_len]
             audios.append(a)
             texts.append(str(ex["transcript"]))
-        inputs = self.processor.feature_extractor(
-            audios, sampling_rate=self.sampling_rate, return_tensors="pt", padding=True
-        )
+        inputs = self.processor.feature_extractor(audios, sampling_rate=self.sampling_rate, return_tensors="pt", padding=True)
         input_features = inputs.input_features
         labels = self.processor.tokenizer(texts, padding=True, return_tensors="pt").input_ids
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
@@ -93,29 +90,11 @@ data_collator = OnTheFlyCollator(processor)
 wer_metric = evaluate.load("wer")
 cer_metric = evaluate.load("cer")
 
-def compute_metrics(eval_pred):
-    """Safe version to prevent IndexError when predictions are malformed."""
-    pred_ids = eval_pred.predictions
-    label_ids = eval_pred.label_ids
-
-    # Handle scalar/nested prediction formats
-    if isinstance(pred_ids, tuple):
-        pred_ids = pred_ids[0]
-    if np.isscalar(pred_ids):
-        pred_ids = np.array([pred_ids])
-    if pred_ids.ndim == 1:
-        pred_ids = np.expand_dims(pred_ids, axis=0)
-
-    pred_ids = np.where(pred_ids != -100, pred_ids, processor.tokenizer.pad_token_id)
-    label_ids = np.where(label_ids != -100, label_ids, processor.tokenizer.pad_token_id)
-
-    try:
-        pred_str = processor.batch_decode(pred_ids, skip_special_tokens=True)
-        label_str = processor.batch_decode(label_ids, skip_special_tokens=True)
-    except Exception as e:
-        print(f"[⚠️ decode error ignored]: {e}")
-        return {"wer": 100.0, "cer": 100.0}
-
+def compute_metrics(pred):
+    pred_ids = np.argmax(pred.predictions, axis=-1)
+    pred_str = processor.batch_decode(pred_ids, skip_special_tokens=True)
+    label_ids = np.where(pred.label_ids == -100, processor.tokenizer.pad_token_id, pred.label_ids)
+    label_str = processor.batch_decode(label_ids, skip_special_tokens=True)
     wer = 100 * wer_metric.compute(predictions=pred_str, references=label_str)
     cer = 100 * cer_metric.compute(predictions=pred_str, references=label_str)
     return {"wer": wer, "cer": cer}
@@ -131,13 +110,16 @@ def run_training():
         learning_rate=LR,
         bf16=True,
         save_strategy="epoch",
-        eval_strategy="epoch",
+        evaluation_strategy="epoch",
         predict_with_generate=True,
-        save_total_limit=2,
         logging_dir=f"{OUTPUT_DIR}/logs",
+        save_total_limit=2,
         report_to="none",
         remove_unused_columns=False,
         dataloader_num_workers=2,
+        load_best_model_at_end=True,
+        metric_for_best_model="wer",
+        greater_is_better=False,
     )
 
     trainer = Seq2SeqTrainer(
@@ -150,14 +132,21 @@ def run_training():
         tokenizer=processor.feature_extractor,
     )
 
-    trainer.train()
+    # ====== Auto Resume ======
+    last_ckpt = None
+    if os.path.isdir(OUTPUT_DIR):
+        checkpoints = [os.path.join(OUTPUT_DIR, d) for d in os.listdir(OUTPUT_DIR) if d.startswith("checkpoint-")]
+        if checkpoints:
+            last_ckpt = sorted(checkpoints, key=os.path.getmtime)[-1]
+            print(f"🔁 Resuming from last checkpoint: {last_ckpt}")
+
+    trainer.train(resume_from_checkpoint=last_ckpt)
     trainer.save_model(OUTPUT_DIR)
     processor.save_pretrained(OUTPUT_DIR)
-    print("✅ Training completed successfully.")
+    print("✅ Training complete.")
 
-    print("📊 Running test evaluation ...")
+    print("📊 Evaluating on test set ...")
     test_metrics = trainer.evaluate(test_ds, metric_key_prefix="test")
     print("✅ Test metrics:", test_metrics)
 
-if __name__ == "__main__":
-    run_training()
+run_training()

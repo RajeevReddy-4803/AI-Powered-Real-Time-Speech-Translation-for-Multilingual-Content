@@ -42,17 +42,15 @@ def map_english_text(input_txt, wav_dir, output_csv):
         writer.writerows(entries)
     print(f"English mapping saved to: {output_csv}\n")
 
+
 if __name__ == "__main__":
-    # ✅ Hindi dataset paths
-    hindi_txt = Path("/content/drive/MyDrive/Hindi_male_mono/Hindi_male_mono/Hindi_male_mono.txt")
-    hindi_wav_dir = Path("/content/drive/MyDrive/Hindi_male_mono/Hindi_male_mono/Hindi_male_audio")
-    hindi_csv = Path("/content/drive/MyDrive/Hindi_male_mono/Hindi_male_mono/text_mapped.csv")
+    hindi_txt = Path("/kaggle/working/speech_translation/raw_data/hindi/Hindi_male_mono/Hindi_male_mono.txt")
+    hindi_wav_dir = Path("/kaggle/working/speech_translation/raw_data/hindi/Hindi_male_mono/Hindi_male_audio")
+    hindi_csv = Path("/kaggle/working/speech_translation/raw_data/hindi/Hindi_male_mono/text_mapped.csv")
 
-    # ✅ English dataset paths
-    english_txt = Path("/content/drive/MyDrive/hindi_male_english/english/text.done.data")
-    english_wav_dir = Path("/content/drive/MyDrive/hindi_male_english/english/wav")
-    english_csv = Path("/content/drive/MyDrive/hindi_male_english/english/text_mapped.csv")
+    english_txt = Path("/kaggle/working/speech_translation/raw_data/english/english/txt.done.data")
+    english_wav_dir = Path("/kaggle/working/speech_translation/raw_data/english/english/wav")
+    english_csv = Path("/kaggle/working/speech_translation/raw_data/english/english/text_mapped.csv")
 
-    # Run both mappings
     map_hindi_text(hindi_txt, hindi_wav_dir, hindi_csv)
     map_english_text(english_txt, english_wav_dir, english_csv)
