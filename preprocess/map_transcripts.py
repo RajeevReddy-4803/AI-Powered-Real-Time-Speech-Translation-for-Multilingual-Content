@@ -43,6 +43,7 @@ def map_english_text(input_txt, wav_dir, output_csv):
     print(f"English mapping saved to: {output_csv}\n")
 
 
+
 if __name__ == "__main__":
     hindi_txt = Path("/kaggle/working/speech_translation/raw_data/hindi/Hindi_male_mono/Hindi_male_mono.txt")
     hindi_wav_dir = Path("/kaggle/working/speech_translation/raw_data/hindi/Hindi_male_mono/Hindi_male_audio")
