@@ -45,6 +45,14 @@ data/
 **/*.ogg
 **/*.aac
 
+# Lingua Kit generated data
+lingua_kit/**/data/
+lingua_kit/**/datasets_cache/
+lingua_kit/**/outputs/
+lingua_kit/**/logs/
+lingua_kit/**/uploads/
+lingua_kit/**/tmp/
+
 # Model files and checkpoints
 models/*/whisper_finetuned/
 models/*/checkpoint-*/

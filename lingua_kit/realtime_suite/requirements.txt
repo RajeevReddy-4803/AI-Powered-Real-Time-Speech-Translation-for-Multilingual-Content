@@ -1,0 +1,29 @@
+# Module 3 — Real-Time OTT Translator (Free/Open Source)
+# Uses Whisper (local STT) + Deep Translator + gTTS
+
+# Speech Recognition (choose one):
+# Option 1: OpenAI Whisper (local, high quality, offline)
+openai-whisper>=20231117
+
+# Option 2: Google Speech Recognition (cloud, free tier)
+SpeechRecognition>=3.10.0
+
+# Translation (already used in Module 2)
+deep-translator>=1.11.0
+
+# Text-to-Speech (already used in Module 2)
+gTTS>=2.4.0
+
+# Audio processing
+pydub>=0.25.1
+librosa>=0.10.0
+soundfile>=0.12.1
+numpy>=1.24.0
+
+# Optional: Faster Whisper (if you have issues with whisper)
+# faster-whisper>=0.10.0
+
+# Utilities
+python-dotenv>=1.0.0
+tqdm>=4.66.1
+requests>=2.31.0

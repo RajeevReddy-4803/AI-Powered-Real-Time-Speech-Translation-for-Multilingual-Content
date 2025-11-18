@@ -1,207 +1,206 @@
-# preprocess/preprocess_speech.py
+"""
+Preprocess speech data for ASR training.
+- Supports Hindi and English
+- Optional denoising and silence trimming
+- Multiprocessing (n_jobs)
+- Memory-efficient batch processing
+"""
+
 import argparse
+import json
 from pathlib import Path
-from joblib import Parallel, delayed
-import numpy as np
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
 import pandas as pd
 from tqdm import tqdm
-import os
 
-# local imports
 from utils_audio import (
-    load_audio, save_wav, peak_normalize, trim_silence,
-    spectral_subtract_noise_reduction, compute_log_mel, compute_mfcc
+    load_audio,
+    save_audio,
+    trim_silence,
+    denoise_audio,
+    get_duration,
 )
-from text_normalizer import normalize_by_lang
+from text_normalizer import normalize_en, normalize_hi
 
 
-def load_transcripts_from_file(transcript_path):
-    """Load mapping from either text_mapped.csv (file, transcript) or id|text."""
-    mapping = {}
-    transcript_path = Path(transcript_path)
-    if not transcript_path.exists():
-        print(f"⚠️ Transcript file not found at {transcript_path}")
-        return mapping
-
-    if transcript_path.suffix == ".csv":
-        # Try CSV with headers
-        try:
-            df = pd.read_csv(transcript_path)
-            if "file" in df.columns and "transcript" in df.columns:
-                for _, row in df.iterrows():
-                    file_path = Path(row["file"])
-                    key = file_path.stem  # "train_hindimale_00001"
-                    mapping[key] = str(row["transcript"])
-                print(f"Loaded {len(mapping)} transcript entries from CSV: {transcript_path}")
-                return mapping
-        except Exception as e:
-            print(f"⚠️ Failed to read CSV format: {e}")
-
-    # Fallback to pipe-delimited
-    with open(transcript_path, "r", encoding="utf-8") as f:
-        for line in f:
-            if "|" in line:
-                key, text = line.strip().split("|", 1)
-                mapping[key.strip()] = text.strip()
-
-    print(f"Loaded {len(mapping)} transcript entries from text file: {transcript_path}")
-    return mapping
+def normalize_text(text: str, lang: str) -> str:
+    """Wrapper for language-specific normalization."""
+    return normalize_hi(text) if lang == "hi" else normalize_en(text)
 
 
+def detect_columns(df):
+    """Auto-detect path and text columns for different dataset formats."""
+    lower_cols = [c.lower() for c in df.columns]
+    path_col = next((c for c in df.columns if any(k in c.lower() for k in ["path", "file", "audio", "wav"])), None)
+    text_col = next((c for c in df.columns if any(k in c.lower() for k in ["text", "transcript", "sentence"])), None)
 
-def process_file(in_path: Path, out_root: Path, config, lang):
-    """Process a single wav file — normalize, trim, extract features, attach transcript."""
+    if not path_col or not text_col:
+        raise ValueError(f"❌ Could not detect 'path' and 'text' columns. Found columns: {list(df.columns)}")
+    return path_col, text_col
+
+
+def process_row(
+    row,
+    path_col,
+    text_col,
+    output_dir,
+    lang,
+    base_audio_dir,
+    denoise=False,
+    trim=False,
+    skip_existing=False,
+):
+    """Process a single (wav, transcript) pair."""
+    wav_path = Path(str(row[path_col]))
+    if not wav_path.is_absolute():
+        wav_path = base_audio_dir / wav_path
+
+    transcript = normalize_text(str(row[text_col]), lang)
+
     try:
-        rel = in_path.relative_to(config['input_dir'])
-        out_dir = out_root / rel.parent
-        out_dir.mkdir(parents=True, exist_ok=True)
-        basename = in_path.stem
+        if not wav_path.exists():
+            print(f"⚠️ Missing file: {wav_path}")
+            return None
 
-        out_proc_wav = out_dir / f"{basename}_proc.wav"
-        out_logmel = out_dir / f"{basename}_logmel.npy"
-        out_mfcc = out_dir / f"{basename}_mfcc.npy"
+        out_wav = output_dir / "wavs" / wav_path.name
 
-        # load and preprocess audio
-        samples, sr = load_audio(str(in_path), sr=config['target_sr'], mono=True)
+        if skip_existing and out_wav.exists():
+            return {
+                "audio_filepath": str(out_wav.resolve()),
+                "text": transcript,
+                "lang": lang,
+                "duration": get_duration(str(out_wav)),
+            }
 
-        if config['do_denoise']:
-            samples = spectral_subtract_noise_reduction(samples, sr=config['target_sr'], prop_decrease=config['denoise_prop'])
+        audio, sr = load_audio(wav_path)
+        if audio is None or sr is None:
+            return None
 
-        if config['peak_normalize']:
-            samples = peak_normalize(samples)
+        if trim:
+            audio = trim_silence(audio, sr)
+        if denoise:
+            audio = denoise_audio(audio)
 
-        samples_trimmed = trim_silence(samples, sr=config['target_sr'], top_db=config['silence_top_db'])
+        save_audio(out_wav, audio, sr)
+        duration = audio.shape[-1] / sr if sr else 0.0
 
-        if config['peak_normalize']:
-            samples_trimmed = peak_normalize(samples_trimmed)
-
-        # save processed audio
-        save_wav(out_proc_wav, samples_trimmed, sr=config['target_sr'], subtype=config['wav_subtype'])
-
-        if len(samples_trimmed) < 400:
-            print(f"⚠️ Skipping {in_path.name}: too short after trimming ({len(samples_trimmed)} samples)")
-            return {'input_path': str(in_path), 'error': 'too_short'}
-
-        log_mel = compute_log_mel(samples_trimmed, sr=config['target_sr'], n_mels=config['n_mels'], fmin=config['fmin'], fmax=config['fmax'])
-        mfcc = compute_mfcc(samples_trimmed, sr=config['target_sr'], n_mfcc=config['n_mfcc'])
-       
-
-        np.save(out_logmel, log_mel)
-        np.save(out_mfcc, mfcc)
-
-        # get transcript
-        normalized_text = ""
-        transcript_map = config.get("transcript_map", {})
-        if basename in transcript_map:
-            text = transcript_map[basename]
-            normalized_text = normalize_by_lang(text, lang=lang)
-        else:
-            transcript_src = in_path.with_suffix('.txt')
-            if transcript_src.exists():
-                try:
-                    text = transcript_src.read_text(encoding='utf-8').strip()
-                except Exception:
-                    text = transcript_src.read_text(errors='ignore').strip()
-                normalized_text = normalize_by_lang(text, lang=lang)
-
-        # save normalized text alongside audio
-        if normalized_text:
-            transcript_dst = out_dir / f"{basename}.txt"
-            transcript_dst.write_text(normalized_text, encoding='utf-8')
-
-        duration = len(samples_trimmed) / config['target_sr']
-        meta = {
-            'input_path': str(in_path),
-            'out_wav': str(out_proc_wav),
-            'logmel_npy': str(out_logmel),
-            'mfcc_npy': str(out_mfcc),
-            'sr': config['target_sr'],
-            'duration_sec': duration,
-            'transcript': normalized_text
+        return {
+            "audio_filepath": str(out_wav.resolve()),
+            "text": transcript,
+            "lang": lang,
+            "duration": float(duration),
         }
-        return meta
-
     except Exception as e:
-        return {'input_path': str(in_path), 'error': str(e)}
+        print(f"⚠️ Error processing {wav_path.name}: {e}")
+        return None
 
 
-def find_audio_files(root, exts=('.wav', '.flac', '.mp3', '.m4a', '.aac', '.ogg')):
-    """Recursively collect audio files from directory."""
-    p = Path(root)
-    files = []
-    for ext in exts:
-        files.extend(list(p.rglob(f"*{ext}")))
-    return files
-
-
-def run_preprocessing(input_dir, output_dir, lang='en', n_jobs=1, do_denoise=False,
-                      silence_db=30, transcript_file=None):
-    """Main pipeline to process all audio and transcripts."""
-    input_dir = Path(input_dir).resolve()
-    output_dir = Path(output_dir).resolve()
+def preprocess_dataset(
+    input_dir,
+    transcript_file,
+    output_dir,
+    lang,
+    n_jobs=1,
+    batch_size=16,
+    denoise=False,
+    trim=False,
+    manifest_name="train_manifest.csv",
+    skip_existing=False,
+):
+    """Main preprocessing function for ASR datasets."""
+    output_dir = Path(output_dir)
+    base_audio_dir = Path(input_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "wavs").mkdir(exist_ok=True)
 
-    # Load transcript mapping if given
-    transcript_map = {}
-    if transcript_file:
-        transcript_map = load_transcripts_from_file(transcript_file)
+    df = pd.read_csv(transcript_file)
+    print(f"📄 Loaded {len(df)} transcripts for {lang.upper()}")
 
-    config = {
-        'input_dir': input_dir,
-        'target_sr': 16000,
-        'wav_subtype': 'PCM_16',
-        'n_mels': 80,
-        'n_mfcc': 13,
-        'fmin': 20,
-        'fmax': 7600,
-        'silence_top_db': silence_db,
-        'peak_normalize': True,
-        'do_denoise': do_denoise,
-        'denoise_prop': 0.8,
-        'transcript_map': transcript_map
+    path_col, text_col = detect_columns(df)
+    print(f"✅ Using columns → path: '{path_col}', text: '{text_col}'")
+
+    manifest = []
+    total = len(df)
+    records = df.to_dict("records")
+
+    for start in range(0, total, batch_size):
+        batch = records[start:start + batch_size]
+        with ProcessPoolExecutor(max_workers=n_jobs) as ex:
+            futures = [
+                ex.submit(
+                    process_row,
+                    row,
+                    path_col,
+                    text_col,
+                    output_dir,
+                    lang,
+                    base_audio_dir,
+                    denoise,
+                    trim,
+                    skip_existing,
+                )
+                for row in batch
+            ]
+            for f in tqdm(
+                as_completed(futures),
+                total=len(futures),
+                desc=f"Batch {start // batch_size + 1}",
+            ):
+                res = f.result()
+                if res:
+                    manifest.append(res)
+
+    manifest_path = output_dir / manifest_name
+    if manifest:
+        pd.DataFrame(manifest).to_csv(manifest_path, index=False)
+        print(f"✅ Saved manifest to {manifest_path}")
+    else:
+        print("⚠️ No processed files — manifest not written.")
+
+    stats = {
+        "language": lang,
+        "records_total": len(df),
+        "records_processed": len(manifest),
+        "output_dir": str(output_dir.resolve()),
+        "manifest_path": str(manifest_path.resolve()),
+        "skip_existing": skip_existing,
     }
 
-    files = find_audio_files(input_dir)
-    print(f"🔍 Found {len(files)} audio files under {input_dir}")
+    stats_path = output_dir / "preprocess_stats.json"
+    with stats_path.open("w", encoding="utf-8") as fh:
+        json.dump(stats, fh, indent=2)
 
-    results = Parallel(n_jobs=n_jobs)(
-        delayed(process_file)(f, output_dir, config, lang) for f in tqdm(files)
-    )
+    print(f"📊 Total processed: {len(manifest)} / {len(df)}")
+    print(f"🗂 Stats written to {stats_path}")
 
-    records = [r for r in results if 'error' not in r]
-    errors = [r for r in results if 'error' in r]
-
-    if records:
-        df = pd.DataFrame.from_records(records)
-        manifest_path = output_dir / "preprocess_manifest.csv"
-        df.to_csv(manifest_path, index=False)
-        print(f"✅ Manifest saved to {manifest_path}")
-
-    if errors:
-        print(f"⚠️ Errors in {len(errors)} files. Sample:")
-        for e in errors[:5]:
-            print(e)
+    return manifest_path
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input_dir", required=True, help="Directory with raw audio files")
-    parser.add_argument("--output_dir", required=True, help="Directory to save processed files")
-    parser.add_argument("--lang", default="en", help="Language code: en or hi")
-    parser.add_argument("--n_jobs", type=int, default=1, help="Parallel workers")
-    parser.add_argument("--denoise", action='store_true', help="Apply spectral denoising")
-    parser.add_argument("--silence_db", type=float, default=30.0, help="Silence trim threshold")
-    parser.add_argument("--transcript_file", type=str, default=None, help="Path to transcripts.txt (optional)")
+    parser = argparse.ArgumentParser(description="Preprocess ASR speech data (Hindi/English)")
+    parser.add_argument("--input_dir", type=str, required=True, help="Path to input WAV directory")
+    parser.add_argument("--output_dir", type=str, required=True, help="Directory to save preprocessed files")
+    parser.add_argument("--lang", type=str, required=True, choices=["hi", "en"], help="Language code")
+    parser.add_argument("--transcript_file", type=str, required=True, help="CSV file with transcript mappings")
+    parser.add_argument("--n_jobs", type=int, default=1, help="Number of parallel workers")
+    parser.add_argument("--batch_size", type=int, default=16, help="Batch size per processing chunk")
+    parser.add_argument("--denoise", action="store_true", help="Apply light denoising filter")
+    parser.add_argument("--trim_silence", action="store_true", help="Trim leading and trailing silence")
+    parser.add_argument("--manifest_name", type=str, default="train_manifest.csv", help="Manifest filename to write")
+    parser.add_argument("--skip_existing", action="store_true", help="Skip re-processing files with cached outputs")
+
     args = parser.parse_args()
 
-    run_preprocessing(
+    preprocess_dataset(
         args.input_dir,
+        args.transcript_file,
         args.output_dir,
-        lang=args.lang,
+        args.lang,
         n_jobs=args.n_jobs,
-        do_denoise=args.denoise,
-        silence_db=args.silence_db,
-        transcript_file=args.transcript_file
+        batch_size=args.batch_size,
+        denoise=args.denoise,
+        trim=args.trim_silence,
+        manifest_name=args.manifest_name,
+        skip_existing=args.skip_existing,
     )
-    
-    

@@ -1,0 +1,532 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400;1,500;1,600;1,700&display=swap');
+
+/* --- 1. BASE STYLES --- */
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(-45deg, #e9de6a, #325aeb, #e9de6a, #6883ec);
+    background-size: 400% 400%;
+    animation: gradientWave 15s ease infinite;
+    color: #111827;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 2rem 1rem;
+    box-sizing: border-box;
+}
+
+@keyframes gradientWave {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* --- 2. HEADER --- */
+header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    color: #2c3e50;
+}
+
+header h1 {
+    font-family: Algerian, 'Playfair Display', serif;
+    font-style: italic;
+    font-size: clamp(2.2rem, 5vw, 3rem);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    color: #1a202c;
+}
+
+header .subtitle {
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    color: #4b5563;
+    margin-top: 0.75rem;
+}
+
+header .languages {
+    font-size: clamp(0.85rem, 2vw, 1rem);
+    color: #6b7280;
+    margin-top: 1rem;
+    font-weight: 300;
+    line-height: 1.6;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* --- 3. MAIN CONTAINER LAYOUT (STACKED) --- */
+.container {
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* --- 4. "GLASS" CARD STYLING --- */
+.section {
+    background-color: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.25);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    transition: all 0.3s ease-in-out;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.section:hover {
+    transform: translateY(-10px) scale(1.01);
+    box-shadow: 0 15px 50px 0 rgba(0, 0, 0, 0.35);
+}
+
+.section h2 {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: clamp(1.4rem, 3vw, 1.8rem);
+    color: #1a202c;
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+}
+
+/* --- 5. BUTTONS --- */
+.controls {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.btn {
+    padding: 0.8rem 1.75rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    transition: all 0.3s ease-in-out;
+    outline: none;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    text-align: center;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5), 0 0 0 6px #4f46e5;
+}
+
+.btn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+.btn-primary {
+    background-color: #4f46e5;
+    color: #ffffff;
+}
+
+.btn-primary:hover:not([disabled]) {
+    background-color: #6366f1;
+    box-shadow: 0 0 25px rgba(99, 102, 241, 0.7);
+}
+
+.btn-secondary {
+    background-color: #ef4444;
+    color: #ffffff;
+}
+
+.btn-secondary:hover:not([disabled]) {
+    background-color: #dc2626;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+}
+
+.btn-success {
+    background-color: #10b981;
+    color: #ffffff;
+}
+
+.btn-success:hover:not([disabled]) {
+    background-color: #059669;
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.7);
+}
+
+.controls .btn {
+    min-width: 120px;
+}
+
+/* File Input Button */
+.file-input-wrapper {
+    text-align: center;
+    width: 100%;
+}
+
+.file-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: #4f46e5;
+    color: #ffffff;
+    padding: 0.8rem 1.75rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 300ms ease-in-out;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+}
+
+.file-label:hover {
+    background-color: #6366f1;
+    box-shadow: 0 0 25px rgba(99, 102, 241, 0.7);
+}
+
+.file-name {
+    margin-top: 0.75rem;
+    font-style: italic;
+    color: #4b5563;
+    text-align: center;
+    font-size: 0.9rem;
+    min-height: 1.5em;
+}
+
+/* --- 6. GENDER TOGGLE SWITCHES --- */
+.gender-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    color: #374151;
+}
+
+.gender-buttons {
+    display: flex;
+    position: relative;
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 2rem;
+    padding: 0.25rem;
+    width: fit-content;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.gender-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: transparent;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    color: #e0e7ff;
+    border-radius: 1.5rem;
+    position: relative;
+    z-index: 1;
+    min-width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.gender-btn.active {
+    color: #ffffff;
+    font-weight: 600;
+    background-color: #4f46e5;
+}
+
+.gender-btn.gender-male.active {
+    background-color: #3b82f6;
+}
+
+.gender-btn.gender-female.active {
+    background-color: #ec4899;
+}
+
+.gender-buttons::before {
+    content: '';
+    position: absolute;
+    top: 0.25rem;
+    left: 0.25rem;
+    height: calc(100% - 0.5rem);
+    width: calc(50% - 0.25rem);
+    background-color: #4f46e5;
+    border-radius: 1.5rem;
+    transition: transform 0.3s ease-in-out;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    z-index: 0;
+}
+
+.gender-buttons:has(.gender-btn.gender-female.active)::before {
+    transform: translateX(calc(100% + 0.5rem));
+}
+
+.gender-btn span {
+    display: inline-block;
+    margin-right: 0.2em;
+}
+
+/* --- 7. INPUTS & SELECTS --- */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    align-items: flex-start;
+}
+
+.input-group label {
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0;
+}
+
+select,
+input[type="text"] {
+    background-color: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: #1a202c;
+    font-size: 0.95rem;
+    border-radius: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%234b5563' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 1rem center;
+    background-repeat: no-repeat;
+    background-size: 1.2em 1.2em;
+    padding-right: 2.5rem;
+    cursor: pointer;
+}
+
+select:focus,
+input[type="text"]:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 2px #4f46e5;
+}
+
+select option {
+    background-color: #ffffff;
+    color: #111827;
+}
+
+.live-mic-section .input-group {
+    margin-bottom: 0.75rem;
+}
+
+.live-mic-section .input-group label {
+    width: 100%;
+    display: block;
+}
+
+.live-mic-section .input-line {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 0.5rem;
+}
+
+.live-mic-section .text-display {
+    flex-grow: 1;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+}
+
+.live-mic-section select {
+    max-width: 130px;
+    flex-shrink: 0;
+}
+
+/* --- 8. RESULTS DISPLAY --- */
+.result-box {
+    background-color: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    margin-top: auto;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.text-result p {
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    color: #374151;
+    line-height: 1.6;
+    word-wrap: break-word;
+}
+
+.text-result p strong {
+    color: #1a202c;
+    font-weight: 600;
+}
+
+.text-display {
+    font-weight: 500;
+    color: #1f2937;
+    display: block;
+    margin-top: 0.25rem;
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    min-height: 1.5em;
+}
+
+.result-box audio {
+    margin-top: 1.25rem;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status {
+    margin-top: 1rem;
+    font-weight: 500;
+    text-align: center;
+    color: #4b5563;
+    font-size: 0.9rem;
+}
+
+/* Loader */
+.loader {
+    width: 2rem;
+    height: 2rem;
+    border-width: 5px;
+    border-color: #818cf8;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 2rem auto 0 auto;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* --- File Preview Specifics --- */
+.file-preview {
+    border: 2px dashed rgba(255, 255, 255, 0.4);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.file-preview h3 {
+    color: #2563eb;
+    font-style: normal;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.file-preview audio,
+.file-preview video {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+    background-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    width: 100%;
+}
+
+.file-preview p {
+    color: #6b7280;
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.upload-section form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.upload-section .input-group,
+.upload-section .gender-selector {
+    width: 100%;
+    max-width: 350px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.youtube-section .input-group,
+.youtube-section .gender-selector {
+    width: 100%;
+    max-width: 350px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.youtube-section .btn-primary {
+    margin-top: 1.5rem;
+}
+
+.youtube-section .controls {
+    margin-bottom: 0;
+}
+
+.youtube-section .controls .youtube-input {
+    width: 100%;
+}
+
+/* --- FOOTER --- */
+.footer {
+    margin-top: 2rem;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: #4b5563;
+    font-size: 0.85rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
+    width: 100%;
+    max-width: 1200px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+}

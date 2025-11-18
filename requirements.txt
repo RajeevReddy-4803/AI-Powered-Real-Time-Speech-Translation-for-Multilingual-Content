@@ -14,3 +14,13 @@ transformers
 datasets
 evaluate
 scikit-learn
+SpeechRecognition
+deep-translator
+gTTS
+pydub
+python-dotenv
+moviepy
+imageio-ffmpeg
+flask
+edge-tts
+pytube

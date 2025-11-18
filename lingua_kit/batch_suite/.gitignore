@@ -1,0 +1,31 @@
+# Audio files
+data/
+outputs/
+logs/
+tmp.wav
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model cache
+*.h5
+*.pkl
+.cache/
+

@@ -1,0 +1,27 @@
+# Module 4 — Flask Web App (Real-Time Speech Translator)
+flask>=3.0.0
+deep-translator>=1.11.0
+gTTS>=2.4.0
+edge-tts>=6.1.0
+SpeechRecognition>=3.10.0
+pydub>=0.25.1
+librosa>=0.10.0
+soundfile>=0.12.1
+numpy>=1.24.0
+werkzeug>=3.0.0
+moviepy>=1.0.3
+scipy>=1.11.0
+
+# YouTube + Whisper streaming support
+pytube>=15.0.0
+googletrans==4.0.0-rc1
+openai-whisper>=20240930
+torch>=2.3.0
+yt-dlp>=2024.11.4
+
+# Optional: Better translation models (for improved accuracy)
+# Uncomment to use M2M100 or Helsinki-NLP models instead of Google Translate
+# transformers>=4.36.0
+# torch>=2.1.0
+# sentencepiece>=0.1.99
+

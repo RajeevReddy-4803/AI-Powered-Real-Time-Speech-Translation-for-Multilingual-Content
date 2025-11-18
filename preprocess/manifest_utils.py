@@ -1,110 +1,110 @@
-# preprocess/manifest_utils.py
 """
-Enhanced manifest splitter for ASR/TTS datasets.
-Performs train/val/test split with duration filtering,
-language support, and summary statistics.
+Manifest creation utilities for ASR datasets (Hindi + English).
+Builds CSV manifests compatible with Whisper & IndicWav2Vec training.
+Optimized for memory efficiency and Google Colab usage.
 """
 
-import argparse
 import pandas as pd
 from pathlib import Path
-from sklearn.model_selection import train_test_split
-import random
-import numpy as np
-import torch  # optional if you're using PyTorch later
-
-random.seed(42)
-np.random.seed(42)
-try:
-    torch.manual_seed(42)
-except Exception:
-    pass
+from tqdm import tqdm
+from text_normalizer import normalize_by_lang      # ✅ fixed absolute import
+from utils_audio import get_duration as get_audio_duration  # ✅ match your utils_audio.py function name
 
 
-def summarize_manifest(df, name):
-    """Print dataset summary"""
-    total_dur = df["duration_sec"].sum() / 3600.0 if "duration_sec" in df.columns else 0
-    print(f"\n📊 {name} set: {len(df)} samples | {total_dur:.2f} hrs total | "
-          f"avg {df['duration_sec'].mean():.2f}s per clip")
+__all__ = ["create_manifest", "combine_manifests"]
 
-def split_manifest(
-    manifest_csv,
-    out_dir,
-    val_frac=0.05,
-    test_frac=0.05,
-    random_state=42,
-    min_dur=0.5,
-    max_dur=20.0,
-    add_lang_col=None
-):
-    """Split manifest into train/val/test with filtering & stats"""
-    df = pd.read_csv(manifest_csv)
-    print(f"Loaded {len(df)} entries from {manifest_csv}")
 
-    # --- duration filter ---
-    if "duration_sec" in df.columns:
-        before = len(df)
-        df = df[(df["duration_sec"] >= min_dur) & (df["duration_sec"] <= max_dur)]
-        print(f"Filtered durations outside [{min_dur}s, {max_dur}s]: {before} → {len(df)}")
+# =============================
+# 🧩 Manifest Creator
+# =============================
+def create_manifest(csv_path: Path, output_dir: Path, lang: str):
+    """
+    Create ASR manifest (CSV) from mapped transcript CSV.
+    
+    Parameters
+    ----------
+    csv_path : Path
+        Input CSV with columns ['wav_path', 'transcript'].
+    output_dir : Path
+        Output directory for manifest files.
+    lang : str
+        Language code ('hi' or 'en').
+    """
+    df = pd.read_csv(csv_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- add language column if requested ---
-    if add_lang_col and "lang" not in df.columns:
-        df["lang"] = add_lang_col
-        print(f"Added language column: {add_lang_col}")
+    manifest = []
 
-    # --- stratified split by duration bins ---
-    if "duration_sec" in df.columns:
-        df["dur_bin"] = pd.qcut(df["duration_sec"].clip(lower=min_dur), q=5, duplicates="drop")
-        train, rest = train_test_split(
-            df,
-            test_size=(val_frac + test_frac),
-            random_state=random_state,
-            stratify=df["dur_bin"]
-        )
-        val_size = val_frac / (val_frac + test_frac)
-        val, test = train_test_split(
-            rest,
-            test_size=(test_frac / (val_frac + test_frac)),
-            random_state=random_state,
-            stratify=rest["dur_bin"]
-        )
-        for d in (df, train, val, test):
-            if "dur_bin" in d.columns:
-                d.drop(columns=["dur_bin"], inplace=True)
-    else:
-        train, rest = train_test_split(df, test_size=(val_frac + test_frac), random_state=random_state)
-        val, test = train_test_split(rest, test_size=(test_frac / (val_frac + test_frac)), random_state=random_state)
+    print(f"📘 Creating manifest for {lang.upper()} dataset...")
+    for _, row in tqdm(df.iterrows(), total=len(df), desc=f"Processing {lang}"):
+        wav_path = Path(row["wav_path"])
+        if not wav_path.exists():
+            continue
 
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+        transcript = normalize_by_lang(str(row["transcript"]), lang)
+        duration = get_audio_duration(str(wav_path))
 
-    # --- save splits ---
-    train.to_csv(out_dir / "train_manifest.csv", index=False)
-    val.to_csv(out_dir / "val_manifest.csv", index=False)
-    test.to_csv(out_dir / "test_manifest.csv", index=False)
+        if duration is None or duration < 0.2:
+            continue  # skip invalid or very short clips
 
-    print(f"\n✅ Saved train/val/test manifests to {out_dir}")
-    summarize_manifest(train, "Train")
-    summarize_manifest(val, "Validation")
-    summarize_manifest(test, "Test")
+        manifest.append({
+            "audio_filepath": str(wav_path.resolve()),
+            "duration": duration,
+            "text": transcript,
+            "lang": lang
+        })
 
+    manifest_df = pd.DataFrame(manifest)
+    manifest_path = output_dir / f"manifest_{lang}.csv"
+    manifest_df.to_csv(manifest_path, index=False)
+
+    print(f"✅ Manifest saved: {manifest_path} ({len(manifest_df)} samples)")
+    return manifest_path
+
+
+# =============================
+# 🔗 Combine Manifests
+# =============================
+def combine_manifests(hindi_manifest: Path, english_manifest: Path, output_dir: Path):
+    """
+    Combine Hindi and English manifests into a unified CSV
+    for multilingual ASR training.
+    """
+    print("🔗 Combining Hindi and English manifests...")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    dfs = []
+    for path in [hindi_manifest, english_manifest]:
+        if path.exists():
+            df = pd.read_csv(path)
+            dfs.append(df)
+            print(f"  → Loaded {path.name} ({len(df)} samples)")
+        else:
+            print(f"⚠️ Skipped missing manifest: {path}")
+
+    if not dfs:
+        print("❌ No manifests found to combine.")
+        return None
+
+    combined_df = pd.concat(dfs, ignore_index=True)
+    combined_df = combined_df.sample(frac=1, random_state=42).reset_index(drop=True)  # shuffle
+
+    combined_path = output_dir / "train_manifest.csv"
+    combined_df.to_csv(combined_path, index=False)
+
+    print(f"✅ Combined manifest saved: {combined_path} ({len(combined_df)} total samples)")
+    return combined_path
+
+
+# =============================
+# 🧪 Quick Test
+# =============================
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Split and clean manifest CSV for ASR/TTS")
-    parser.add_argument("--manifest", required=True, help="Path to preprocess_manifest.csv")
-    parser.add_argument("--out_dir", required=True, help="Output directory for split manifests")
-    parser.add_argument("--val_frac", type=float, default=0.05)
-    parser.add_argument("--test_frac", type=float, default=0.05)
-    parser.add_argument("--min_dur", type=float, default=0.5)
-    parser.add_argument("--max_dur", type=float, default=20.0)
-    parser.add_argument("--lang", type=str, default=None, help="Force language column (en|hi)")
-    args = parser.parse_args()
+    base = Path("/content/drive/MyDrive")
+    hindi_csv = base / "Hindi_male_mono/Hindi_male_mono/text_mapped.csv"
+    english_csv = base / "hindi_male_english/english/text_mapped.csv"
+    output_dir = base / "asr_manifests"
 
-    split_manifest(
-        args.manifest,
-        args.out_dir,
-        val_frac=args.val_frac,
-        test_frac=args.test_frac,
-        min_dur=args.min_dur,
-        max_dur=args.max_dur,
-        add_lang_col=args.lang
-    )
+    hi_manifest = create_manifest(hindi_csv, output_dir, "hi")
+    en_manifest = create_manifest(english_csv, output_dir, "en")
+    combine_manifests(hi_manifest, en_manifest, output_dir)

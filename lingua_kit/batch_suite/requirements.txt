@@ -1,0 +1,9 @@
+SpeechRecognition==3.10.0
+deep-translator>=1.11.0
+gTTS==2.4.0
+pydub==0.25.1
+datasets>=2.14.6
+soundfile>=0.12.1
+numpy>=1.24.0
+tqdm>=4.66.1
+

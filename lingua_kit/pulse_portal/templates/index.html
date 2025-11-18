@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌐 Lingua Kit Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🌐 Lingua Kit Portal</h1>
+            <p class="subtitle">Upload audio/video files or use microphone for instant translation</p>
+            <p class="languages">Supports: Hindi, English, Punjabi, Marathi, Kannada, Telugu, Tamil, Gujarati,
+                Malayalam, Bengali, Odia, Urdu</p>
+        </header>
+
+        <div class="section">
+            <h2>🎙️ Live Microphone Translation</h2>
+            <div class="controls">
+                <button id="startBtn" class="btn btn-primary">🎤 Start Recording</button>
+                <button id="stopBtn" class="btn btn-secondary" disabled>⏹ Stop</button>
+            </div>
+
+            <div class="target-lang-selector">
+                <label for="liveLang">Translate to:</label>
+                <select id="liveLang">
+                    {% for code, name in languages.items() %}
+                    <option value="{{ code }}" {% if code=='hi' %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="gender-selector">
+                <label>Voice Gender:</label>
+                <div class="gender-buttons">
+                    <button type="button" class="gender-btn gender-male active" data-gender="male"
+                        id="liveGenderMale">👨 Male</button>
+                    <button type="button" class="gender-btn gender-female" data-gender="female" id="liveGenderFemale">👩
+                        Female</button>
+                </div>
+            </div>
+
+            <div id="liveResult" class="result-box">
+                <div class="text-result">
+                    <p><strong>🎤 Recognized:</strong> <span id="liveText" class="text-display">-</span></p>
+                    <p><strong>🌐 Translated:</strong> <span id="translatedText" class="text-display">-</span></p>
+                </div>
+                <audio id="liveAudio" controls style="margin-top: 10px; width: 100%;"></audio>
+                <div id="liveStatus" class="status"></div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="section">
+            <h2>🎥 YouTube Real-Time Translation</h2>
+            <div class="controls">
+                <input id="ytUrl" type="text" placeholder="Enter YouTube Video Link"
+                    style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+            </div>
+
+            <div class="target-lang-selector" style="margin-top:12px;">
+                <label for="ytLang">Translate to:</label>
+                <select id="ytLang">
+                    {% for code, name in languages.items() %}
+                    <option value="{{ code }}" {% if code=='hi' %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="gender-selector">
+                <label>Voice Gender:</label>
+                <div class="gender-buttons">
+                    <button type="button" class="gender-btn gender-male active" data-gender="male" id="ytGenderMale">👨
+                        Male</button>
+                    <button type="button" class="gender-btn gender-female" data-gender="female" id="ytGenderFemale">👩
+                        Female</button>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="ytStartBtn">🎧 Start Translation</button>
+
+            <div id="ytResults" class="result-box" style="margin-top:12px; display:none;"></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="section">
+            <h2>📂 Upload Audio / Video File</h2>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="file-input-wrapper">
+                    <label for="fileInput" class="file-label">
+                        <span id="fileLabelText">📁 Choose File</span>
+                        <input type="file" id="fileInput" name="file" accept="audio/*,video/*" hidden>
+                    </label>
+                </div>
+                <div id="fileName" class="file-name"></div>
+
+                <!-- File Preview Section -->
+                <div id="filePreview" class="file-preview" style="display: none; margin-top: 15px;">
+                    <h3 style="margin-bottom: 10px; color: #0078ff;">🎵 Preview Uploaded File</h3>
+                    <audio id="audioPreview" controls
+                        style="width: 100%; max-width: 500px; margin: 10px auto; display: none;"></audio>
+                    <video id="videoPreview" controls
+                        style="width: 100%; max-width: 500px; margin: 10px auto; display: none;"></video>
+                    <p id="previewInfo" style="color: #666; font-style: italic; margin-top: 5px;"></p>
+                </div>
+
+                <div class="target-lang-selector">
+                    <label for="uploadLang">Translate to:</label>
+                    <select id="uploadLang">
+                        {% for code, name in languages.items() %}
+                        <option value="{{ code }}" {% if code=='hi' %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="gender-selector">
+                    <label>Voice Gender:</label>
+                    <div class="gender-buttons">
+                        <button type="button" class="gender-btn gender-male active" data-gender="male"
+                            id="uploadGenderMale">👨 Male</button>
+                        <button type="button" class="gender-btn gender-female" data-gender="female"
+                            id="uploadGenderFemale">👩 Female</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-success" id="uploadBtn">🚀 Upload & Translate</button>
+            </form>
+
+            <div id="uploadResult" class="result-box">
+                <div class="text-result">
+                    <p><strong>📝 Original:</strong> <span id="origText" class="text-display">-</span></p>
+                    <p><strong>🌐 Translated:</strong> <span id="transText" class="text-display">-</span></p>
+                </div>
+                <audio id="uploadAudio" controls style="margin-top: 10px; width: 100%;"></audio>
+                <div id="uploadStatus" class="status"></div>
+            </div>
+        </div>
+
+        
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+
+</html>

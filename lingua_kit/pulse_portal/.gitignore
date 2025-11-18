@@ -1,0 +1,28 @@
+# Flask
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Uploads and generated files
+uploads/
+static/*.mp3
+static/*.wav
+
+# Environment
+.env
+.venv
+env/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
