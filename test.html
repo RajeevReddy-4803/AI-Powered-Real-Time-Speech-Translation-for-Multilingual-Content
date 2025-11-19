@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌐 QalamAI: Real-Time Speech Translator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400..900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- 1. BASE STYLES --- */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(-45deg, #e9de6a, #325aeb, #e9de6a, #6883ec);
+            background-size: 400% 400%;
+            animation: gradientWave 15s ease infinite;
+            color: #111827;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center content horizontally */
+            justify-content: flex-start; /* Align content to the top */
+            padding: 2rem 1rem; /* Add some padding around the main container */
+            box-sizing: border-box;
+        }
+
+        @keyframes gradientWave {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* --- 2. HEADER --- */
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem; /* More space below header */
+            color: #2c3e50; /* Darker text for better contrast */
+        }
+        header h1 {
+            font-family: Algerian, 'Playfair Display', serif !important;
+            font-style: italic;
+            font-size: clamp(2.2rem, 5vw, 3rem); /* Larger and responsive */
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            color: #1a202c; /* Ensure it's very dark */
+        }
+        header .subtitle {
+            font-size: clamp(1rem, 2.5vw, 1.25rem);
+            color: #4b5563;
+            margin-top: 0.75rem;
+        }
+        header .languages {
+            font-size: clamp(0.85rem, 2vw, 1rem);
+            color: #6b7280;
+            margin-top: 1rem;
+            font-weight: 300;
+            line-height: 1.6;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* --- 3. MAIN CONTAINER & GRID LAYOUT --- */
+        .container {
+            max-width: 1200px; /* Wider container to accommodate 3 columns */
+            width: 100%;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(1, 1fr); /* Single column on small screens */
+            gap: 2rem;
+        }
+
+        @media (min-width: 768px) { /* Medium screens */
+            .container {
+                grid-template-columns: repeat(2, 1fr); /* Two columns */
+            }
+            .section:last-child { /* YouTube section on its own row initially */
+                 grid-column: span 2;
+            }
+        }
+
+        @media (min-width: 1024px) { /* Large screens (3 columns) */
+            .container {
+                grid-template-columns: repeat(3, 1fr);
+            }
+             .section:last-child { /* YouTube section back to 1 column */
+                 grid-column: span 1;
+            }
+        }
+
+        /* --- 4. "GLASS" CARD STYLING --- */
+        .section {
+            background-color: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
+            backdrop-filter: blur(15px); /* Stronger blur for glass effect */
+            -webkit-backdrop-filter: blur(15px);
+            box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.25); /* More pronounced shadow */
+            border-radius: 1.5rem; /* Consistent rounding */
+            padding: 2rem;
+            transition: all 0.3s ease-in-out;
+            border: 1px solid rgba(255, 255, 255, 0.3); /* Lighter border */
+            display: flex; /* Use flex to vertically arrange content */
+            flex-direction: column;
+            gap: 1.25rem; /* Spacing between elements inside section */
+        }
+        .section:hover {
+            transform: translateY(-10px) scale(1.01); /* Lift and slightly enlarge */
+            box-shadow: 0 15px 50px 0 rgba(0, 0, 0, 0.35);
+        }
+        
+        /* Heading in sections */
+        .section h2 {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: clamp(1.4rem, 3vw, 1.8rem);
+            color: #1a202c;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+        }
+
+        /* --- 5. BUTTONS --- */
+        .btn {
+            padding: 0.8rem 1.75rem;
+            border-radius: 2rem; /* Pill-shaped */
+            font-weight: 600;
+            transition: all 0.3s ease-in-out;
+            outline: none;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            text-align: center;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1); /* Subtle text shadow */
+        }
+        .btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5), 0 0 0 6px #4f46e5;
+        }
+        .btn[disabled] {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        
+        .btn-primary {
+            background-color: #4f46e5; /* Indigo */
+            color: #ffffff;
+        }
+        .btn-primary:hover:not([disabled]) {
+            background-color: #6366f1;
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.7); /* Glow effect */
+        }
+        
+        .btn-secondary {
+            background-color: #ef4444; /* Red for Stop */
+            color: #ffffff;
+        }
+        .btn-secondary:hover:not([disabled]) {
+            background-color: #dc2626;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+        }
+
+        .btn-success {
+            background-color: #10b981; /* Green */
+            color: #ffffff;
+        }
+        .btn-success:hover:not([disabled]) {
+            background-color: #059669;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.7);
+        }
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem; /* Add space below controls */
+        }
+        .controls .btn {
+            min-width: 120px; /* Ensure buttons have a minimum width */
+        }
+        
+        /* File Input Button */
+        .file-input-wrapper {
+            text-align: center;
+            width: 100%; /* Take full width of its parent */
+        }
+        .file-label {
+            display: inline-flex; /* To center and maintain button-like appearance */
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background-color: #4f46e5;
+            color: #ffffff;
+            padding: 0.8rem 1.75rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 300ms ease-in-out;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+        .file-label:hover {
+            background-color: #6366f1;
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.7);
+        }
+        .file-name {
+            margin-top: 0.75rem;
+            font-style: italic;
+            color: #4b5563;
+            text-align: center;
+            font-size: 0.9rem;
+            min-height: 1.5em; /* Reserve space */
+        }
+
+        /* --- 6. GENDER TOGGLE SWITCHES --- */
+        .gender-selector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem; /* Space below selector */
+            color: #374151;
+        }
+        .gender-buttons {
+            display: flex;
+            position: relative;
+            background-color: rgba(0, 0, 0, 0.15); /* Darker semi-transparent background */
+            border-radius: 2rem;
+            padding: 0.25rem; /* Padding inside the switch container */
+            width: fit-content;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .gender-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: transparent;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            color: #e0e7ff; /* Lighter text for contrast on dark background */
+            border-radius: 1.5rem; /* Rounded internal buttons */
+            position: relative;
+            z-index: 1;
+            min-width: 80px; /* Ensure size */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+        .gender-btn.active {
+            color: #ffffff;
+            font-weight: 600;
+            background-color: transparent; /* Background handled by the slider */
+        }
+        .gender-buttons::before {
+            content: '';
+            position: absolute;
+            top: 0.25rem;
+            left: 0.25rem;
+            height: calc(100% - 0.5rem);
+            width: calc(50% - 0.25rem); /* Half width of the container minus padding */
+            background-color: #4f46e5; /* Active slider color */
+            border-radius: 1.5rem;
+            transition: transform 0.3s ease-in-out;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 0;
+        }
+        /* This class will be toggled by JS to move the slider */
+        .gender-buttons.female::before {
+            transform: translateX(calc(100% + 0.5rem)); /* Move to the right */
+        }
+        /* Make sure emojis are aligned */
+        .gender-btn span {
+            display: inline-block;
+            margin-right: 0.2em;
+        }
+
+        /* --- 7. INPUTS & SELECTS --- */
+        .input-group {
+            display: flex;
+            flex-direction: column; /* Stack label and input */
+            gap: 0.5rem;
+            width: 100%; /* Full width */
+            align-items: flex-start; /* Align label to the left */
+        }
+        .input-group label {
+            font-weight: 500;
+            color: #374151; /* Darker label text */
+            margin-bottom: 0; /* Override default label margin */
+        }
+        select, input[type="text"] {
+            background-color: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            color: #1a202c; /* Dark text for readability */
+            font-size: 0.95rem;
+            border-radius: 0.75rem;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%234b5563' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+            background-position: right 1rem center;
+            background-repeat: no-repeat;
+            background-size: 1.2em 1.2em;
+            padding-right: 2.5rem;
+            cursor: pointer;
+        }
+        select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 2px #4f46e5;
+        }
+        select option {
+            background-color: #ffffff;
+            color: #111827;
+        }
+        
+        /* Specific input arrangements from image */
+        .live-mic-section .input-group {
+            margin-bottom: 0.75rem;
+        }
+        .live-mic-section .input-group label {
+            width: 100%;
+            display: block;
+        }
+        .live-mic-section .input-line {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            gap: 0.5rem; /* Gap between text display and select */
+        }
+         .live-mic-section .text-display {
+            flex-grow: 1; /* Text display takes up available space */
+            min-height: 44px; /* Match height of select */
+            display: flex;
+            align-items: center;
+         }
+         .live-mic-section select {
+            max-width: 130px; /* Width for the "Voice Vol" dropdown */
+            flex-shrink: 0; /* Don't shrink */
+         }
+
+        /* --- 8. RESULTS DISPLAY --- */
+        .result-box {
+            background-color: rgba(255, 255, 255, 0.25); /* Slightly darker glass for results */
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin-top: auto; /* Push to bottom of flex container */
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
+            flex-grow: 1; /* Allow result box to fill available space */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .text-result p {
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+            color: #374151;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+        .text-result p strong {
+            color: #1a202c;
+            font-weight: 600;
+        }
+        .text-display {
+            font-weight: 500;
+            color: #1f2937;
+            display: block; /* Ensure text wraps */
+            margin-top: 0.25rem;
+            background-color: rgba(0,0,0,0.05); /* Very subtle background for text display */
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            min-height: 1.5em; /* Set a min-height */
+        }
+        .result-box audio {
+            margin-top: 1.25rem;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.4);
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .status {
+            margin-top: 1rem;
+            font-weight: 500;
+            text-align: center;
+            color: #4b5563;
+            font-size: 0.9rem;
+        }
+
+        /* Loader */
+        .loader {
+            width: 2rem;
+            height: 2rem;
+            border-width: 5px;
+            border-color: #818cf8;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- File Preview Specifics --- */
+        .file-preview {
+            border: 2px dashed rgba(255, 255, 255, 0.4);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            text-align: center;
+            display: flex; /* Use flex for media and info */
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+        .file-preview h3 {
+            color: #2563eb; /* Blue for preview title */
+            font-style: normal;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        .file-preview audio, .file-preview video {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.75rem;
+            background-color: rgba(0,0,0,0.1); /* Subtle dark background for media players */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            width: 100%; /* Ensure they fill the preview box */
+        }
+        .file-preview p {
+            color: #6b7280;
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+        /* Specific adjustment for Upload form elements */
+        .upload-section form {
+            width: 100%; /* Allow form to stretch in column */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem; /* Spacing between form elements */
+        }
+        .upload-section .input-group,
+        .upload-section .gender-selector {
+            width: 100%;
+            max-width: 350px; /* Constrain width within the column */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* YouTube section specific alignment */
+        .youtube-section .input-group,
+        .youtube-section .gender-selector {
+            width: 100%;
+            max-width: 350px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .youtube-section .btn-primary {
+            margin-top: 1.5rem; /* Space before the button */
+        }
+        
+        .youtube-section .controls { /* Remove margin for YT input */
+            margin-bottom: 0;
+        }
+        .youtube-section .controls .youtube-input {
+            width: 100%;
+        }
+
+
+        /* --- FOOTER --- */
+        .footer {
+            margin-top: 2rem;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            color: #4b5563;
+            font-size: 0.85rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            width: 100%;
+            max-width: 1200px; /* Match main container width */
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        }
+
+    </style>
+    <meta name="description" content="Upload or record audio, translate and generate speech in real time. Also supports YouTube link translation.">
+</head>
+<body>
+    <header>
+        <h1>✨ 🌐 QalamAI: Real-Time Speech Translator</h1>
+        <p class="subtitle">Seamlessly translate and generate speech from your voice, audio/video files, or YouTube links.</p>
+        <p class="languages">Supports: Hindi, English, Punjabi, Marathi, Kannada, Telugu, Tamil, Gujarati, Malayalam, Bengali, Odia, Urdu</p>
+    </header>
+
+    <div class="container">
+        
+<div class="section live-mic-section">
+            <h2>🎙️ Live Microphone Translation</h2>
+            <div class="controls">
+                <button id="startBtn" class="btn btn-primary">🎤 Start Recording</button>
+                <button id="stopBtn" class="btn btn-secondary" disabled>⏹ Stop</button>
+            </div>
+
+            <div class="input-group">
+                <label>Recognized Text:</label>
+                <div class="input-line">
+                    <span id="liveText" class="text-display">-</span>
+                    <select class="input-field" style="max-width: 130px;">
+                        <option>Voice Vol:</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Translated Text:</label>
+                <div class="input-line">
+                    <span id="translatedText" class="text-display">-</span>
+                    <select class="input-field" style="max-width: 130px;">
+                        <option>Voice Vol:</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="gender-selector">
+                <label>Voice Gender:</label>
+                <div class="gender-buttons" id="liveGenderButtons">
+                    <button type="button" class="gender-btn gender-male active" data-gender="male" id="liveGenderMale"><span>👨</span>Male</button>
+                    <button type="button" class="gender-btn gender-female" data-gender="female" id="liveGenderFemale"><span>👩</span>Female</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="liveLang">Translate to:</label>
+                <select id="liveLang">
+                    <option value="en">English</option>
+                    <option value="hi" selected>Hindi</option>
+                    <option value="pa">Punjabi</option>
+                    <option value="mr">Marathi</option>
+                    <option value="kn">Kannada</option>
+                    <option value="te">Telugu</option>
+                    <option value="ta">Tamil</option>
+                    <option value="gu">Gujarati</option>
+                    <option value="ml">Malayalam</option>
+                    <option value="bn">Bengali</option>
+                    <option value="or">Odia</option>
+                    <option value="ur">Urdu</option>
+                </select>
+            </div>
+
+            <div id="liveResult" class="result-box">
+                <p><strong>Result Audio:</strong></p>
+                <audio id="liveAudio" controls></audio>
+                <div id="liveStatus" class="status"></div>
+            </div>
+        </div>
+
+        
+<div class="section upload-section">
+            <h2>📂 Upload Audio / Video File</h2>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="file-input-wrapper">
+                    <label for="fileInput" class="file-label">
+                        <span id="fileLabelText">📁 Choose File</span>
+                        <input type="file" id="fileInput" name="file" accept="audio/*,video/*" hidden>
+                    </label>
+                </div>
+                <div id="fileName" class="file-name">File not chosen</div>
+
+                <div id="filePreview" class="file-preview" style="display: none;">
+                    <h3>🎵 Preview Uploaded File</h3>
+                    <audio id="audioPreview" controls style="display: none;"></audio>
+                    <video id="videoPreview" controls style="display: none;"></video>
+                    <p id="previewInfo"></p>
+                </div>
+
+                <div class="input-group">
+                    <label for="uploadLang">Translate to:</label>
+                    <select id="uploadLang">
+                        <option value="en">English</option>
+                        <option value="hi" selected>Hindi</option>
+                        <option value="pa">Punjabi</option>
+                        <option value="mr">Marathi</option>
+                        <option value="kn">Kannada</option>
+                        <option value="te">Telugu</option>
+                        <option value="ta">Tamil</option>
+                        <option value="gu">Gujarati</option>
+                        <option value="ml">Malayalam</option>
+                        <option value="bn">Bengali</option>
+                        <option value="or">Odia</option>
+                        <option value="ur">Urdu</option>
+                    </select>
+                </div>
+
+                <div class="gender-selector">
+                    <label>Voice Gender:</label>
+                    <div class="gender-buttons" id="uploadGenderButtons">
+                        <button type="button" class="gender-btn gender-male active" data-gender="male" id="uploadGenderMale"><span>👨</span>Male</button>
+                        <button type="button" class="gender-btn gender-female" data-gender="female" id="uploadGenderFemale"><span>👩</span>Female</button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-success" id="uploadBtn">🚀 Upload & Translate</button>
+            </form>
+
+            <div id="uploadResult" class="result-box">
+                <p><strong>📝 Original:</strong> <span id="origText" class="text-display">-</span></p>
+                <p><strong>🌐 Translated:</strong> <span id="transText" class="text-display">-</span></p>
+                <p><strong>Result Audio:</strong></p>
+                <audio id="uploadAudio" controls></audio>
+                <div id="uploadStatus" class="status"></div>
+            </div>
+        </div>
+
+        
+<div class="section youtube-section">
+            <h2>🎥 YouTube Translation</h2>
+            <div class="input-group">
+                <label for="ytUrl">YouTube Link:</label>
+                <input id="ytUrl" type="text" placeholder="Enter YouTube Video Link" class="youtube-input">
+            </div>
+
+            <div class="input-group">
+                <label for="ytLang">Translate to:</label>
+                <select id="ytLang">
+                    <option value="en">English</option>
+                    <option value="hi" selected>Hindi</option>
+                    <option value="pa">Punjabi</option>
+                    <option value="mr">Marathi</option>
+                    <option value="kn">Kannada</option>
+                    <option value="te">Telugu</option>
+                    <option value="ta">Tamil</option>
+                    <option value="gu">Gujarati</option>
+                    <option value="ml">Malayalam</option>
+                    <option value="bn">Bengali</option>
+                    <option value="or">Odia</option>
+                    <option value="ur">Urdu</option>
+                </select>
+            </div>
+
+            <div class="gender-selector">
+                <label>Voice Gender:</label>
+                <div class="gender-buttons" id="ytGenderButtons">
+                    <button type="button" class="gender-btn gender-male active" data-gender="male" id="ytGenderMale"><span>👨</span>Male</button>
+                    <button type="button" class="gender-btn gender-female" data-gender="female" id="ytGenderFemale"><span>👩</span>Female</button>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" id="ytStartBtn">🎧 Start Translation</button>
+
+            <div id="ytResults" class="result-box" style="display:none;">
+                <p><strong>Original Subtitles:</strong> <span id="ytOriginalText" class="text-display">-</span></p>
+                <p><strong>Translated Subtitles:</strong> <span id="ytTranslatedText" class="text-display">-</span></p>
+                <p><strong>Translated Audio:</strong></p>
+                <audio id="ytAudio" controls></audio>
+                <div id="ytStatus" class="status"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2024 QalamAI. All rights reserved.</p>
+    </div>
+
+    <script src="static/app.js"></script>
+    <script>
+        // JavaScript to handle the gender button active state and slider animation
+        document.querySelectorAll('.gender-buttons').forEach(container => {
+            container.addEventListener('click', (event) => {
+                const clickedButton = event.target.closest('.gender-btn');
+                if (clickedButton && !clickedButton.classList.contains('active')) {
+                    // Remove 'active' from the sibling
+                    const sibling = clickedButton.parentElement.querySelector('.gender-btn.active');
+                    if(sibling) sibling.classList.remove('active');
+                    
+                    // Add 'active' to the clicked button
+                    clickedButton.classList.add('active');
+                    
+                    // Animate the slider
+                    if (clickedButton.dataset.gender === 'female') {
+                        container.classList.add('female');
+                    } else {
+                        container.classList.remove('female');
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
